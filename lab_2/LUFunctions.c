@@ -1,5 +1,5 @@
-#include<stdio.h>
-//_CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <math.h>
 #pragma warning(disable:4996)
 
 //int a[STR][COLS] =
@@ -104,6 +104,12 @@ void VectorInFile(char* filename, double* vector, int size) {
 		fprintf(fp, "%.2f ", vector[i]);
 	}
 	fclose(fp);
+}
+
+void ChangeMatrix(double* A, double* b, int size) {
+	double* newA = (double*)malloc(sizeof(double) * size * size);
+	for (int i = 0; i < size; i++) {	
+	}
 }
 
 int main() {
