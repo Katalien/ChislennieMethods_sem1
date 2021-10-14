@@ -183,7 +183,9 @@ int main() {
 	double** newXgood = (double**)malloc(sizeof(double*) * n);
 	double** newXbad = (double**)malloc(sizeof(double*) * n);
 	Deltab[0] = 1e-9;
-
+	if ( fpbad == NULL) {
+		printf("problem in file");
+	}
 
 	//заполняем массив дельта
 	for (int i = 1; i < n; i++) {
@@ -245,18 +247,22 @@ int main() {
 		massX[k] = x;
 	}
 	
-
+	free(massMat);
+	free(massVec);
+	free(massU);
+	free(massL);
+	free(massX);
 
 	
 	//запичываем результат х в файл
-	for (int k = 0; k < size; k++) {
+	/*for (int k = 0; k < size; k++) {
 		for (int i = 0; i < size; i++) {
 			double* A = massX[k];
 			double elem = A[i];
 			fprintf(fp3, "%.8f ", elem);
 		}
 		fprintf(fp3,"\n");
-	}
+	}*/
 
 	
 	
@@ -264,7 +270,7 @@ int main() {
 	//берем 1 матрицу, в цикле вносим возмущение в вектор b, считаем х и записываем в файл
 
 	// запись в файл для хорошй матрицы
-	for (int k = 0; k <n; k++) {
+	/*for (int k = 0; k <n; k++) {
 		double* newVec = (double*)malloc(sizeof (double)*size);
 		double* newX = (double*)malloc(sizeof(double) * size);
 		double* Ltemp = (double*)malloc(sizeof(double) * size*size);
@@ -276,9 +282,28 @@ int main() {
 		SolveEq(Ltemp, Utemp, B,newVec,  newX, size);
 		VectorInFile(fpgood, newX, size);
 		fprintf(fpgood, "\n");
-	}
- 
-
+	}*/
+ //
+	
 	// запись в файл для плохой матрицы
+	for (int k = 0; k < n; k++) {
+		double* newVec = (double*)malloc(sizeof(double) * size);
+		double* newX = (double*)malloc(sizeof(double) * size);
+		double* Ltemp = (double*)malloc(sizeof(double) * size * size);
+		double* Utemp = (double*)malloc(sizeof(double) * size * size);
+		FillZero(Ltemp, size);
+		CopyVector(newVec, b2, size);
+		LU(C, Ltemp, Utemp, size);
+		ChangeVector(newVec, Deltab[k], size);
+		SolveEq(Ltemp, Utemp, C, newVec, newX, size);
+		//VectorInFile(fpbad, newX, size);
+		//fprintf(fpbad, "\n");
+	}
+
+	fclose(fp1);
+	fclose(fp2);
+	//fclose(fp3);
+//	fclose(fpgood);
+	//fclose(fpbad);
 }
 
