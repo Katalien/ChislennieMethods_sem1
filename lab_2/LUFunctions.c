@@ -12,7 +12,7 @@
 void PrintMatrix(double* mass, int size) {
 	for (int str = 0; str < size; str++) {
 		for (int col = 0; col < size; col++) {
-			printf("%.2f ", mass[str*size+col]);
+			printf("%.8f ", mass[str*size+col]);
 		}
 		printf("\n");
 	}
@@ -21,7 +21,7 @@ void PrintMatrix(double* mass, int size) {
 void PrintVector(double* vect, int size) {
 	printf("\n");
 	for (int i = 0; i < size; i++) {
-		printf("%.2f\n", vect[i]);
+		printf("%.8f\n", vect[i]);
 	}
 
 }
@@ -35,64 +35,59 @@ void Copy(double* from, double* to, int size) {
 }
 
 
-void LU(double* L, double* U, double* A, int size) {
-	Copy(A, U, size);
-	for (int i = 0; i < size; i++)
-		for (int j = i; j < size; j++)
-			L[j*size+i] = U[j * size + i] / U[i * size + i];
+//void LU(double* L, double* U, double* A, int size) {
+//	Copy(A, U, size);
+//	for (int i = 0; i < size; i++)
+//		for (int j = i; j < size; j++)
+//			L[j*size+i] = U[j * size + i] / U[i * size + i];
+//
+//	for (int k = 1; k < size; k++)
+//	{
+//		for (int i = k - 1; i < size; i++)
+//			for (int j = i; j < size; j++)
+//				L[j*size+i] = U[j * size + i] / U[i * size + i];
+//
+//		for (int i = k; i < size; i++)
+//			for (int j = k - 1; j < size; j++)
+//				U[i*size+j] = U[i * size + j] - L[ i*size + (k - 1)] * U[(k - 1)*size+j] ;
+//	}
+//}
 
-	for (int k = 1; k < size; k++)
+void LU(double* A, double* L, double* U, int n)
+{
+	Copy(A, U, n);
+
+	for (int i = 0; i < n; i++)
+		for (int j = i; j < n; j++)
+			L[j*n+i] = U[j*n+i] / U[i*n+i];
+
+	for (int k = 1; k < n; k++)
 	{
-		for (int i = k - 1; i < size; i++)
-			for (int j = i; j < size; j++)
-				L[j*size+i] = U[j * size + i] / U[i * size + i];
+		for (int i = k - 1; i < n; i++)
+			for (int j = i; j < n; j++)
+				L[j*n+i] = U[j*n+i] / U[i*n+i];
 
-		for (int i = k; i < size; i++)
-			for (int j = k - 1; j < size; j++)
-				U[i*size+j] = U[i * size + j] - L[ i*size + (k - 1)] * U[(k - 1)*size+j] ;
+		for (int i = k; i < n; i++)
+			for (int j = k - 1; j < n; j++)
+				U[i*n+j] = U[i*n+j] - L[i*n+(k - 1)] * U[(k - 1)*n+j];
 	}
+
 }
 
-void SolveEq(double* L, double* U, double* A, double* b, double* x, const int size) {
-	double* y = (double*)malloc(sizeof(double)*size);
-	int sum = 0;
-	y[0] = b[0];
 
-	//обратная подстановка: L диагональ 1 
-	for (int i = 1; i < size; i++) { // идем по строкам
-		sum = 0;
-		for (int k = 0; k <= i-1 ; k++) {
-				sum = sum + L[i * size + k] * y[k];      // считаем сумму по сроке: коэффициент из матрицы L * нйденный у
-		}
-		y[i] = b[i] - sum;     // коэффициент при y[i]=1
-	}
-	int m = size - 1;
-	x[m] = y[m] / U[size * m + m];
-
-	for (int i = size - 2; i >= 0; i--) {
-		sum = 0;
-		for (int k = size - 1; k >= i+1; k--) {
-			sum = sum + U[size * i + k] * x[k];
-		}
-		x[i] = (y[i] - sum) / U[size * i + i];
-	}
-	free(y);
-}
-
-void ReadMatrix(char*filename, double* A, int size) {
+void ReadVector(char* filename, double* b, int size) {
 	FILE* fp = fopen(filename, "r");
 	if (fp == NULL) {
 		printf("\nFile hasn't been opened\n");
 		return;
 	}
 	for (int i = 0; i < size; i++) {
-		for (int j = 0; j < size; j++) {
-			int elem;
-			fscanf(fp, "%d ", &elem );
-			A[i * size + j] = elem;
-		}
+		double elem;
+		fscanf(fp, "%lf ", &elem);
+		b[i] = elem;
 	}
 }
+
 
 void VectorInFile(char* filename, double* vector, int size) {
 	FILE* fp = fopen(filename, "a");
@@ -101,35 +96,96 @@ void VectorInFile(char* filename, double* vector, int size) {
 		return;
 	}
 	for (int i = 0; i < size; i++) {
-		fprintf(fp, "%.2f ", vector[i]);
+		fprintf(fp, "%.8f ", vector[i]);
 	}
 	fclose(fp);
 }
 
-void ChangeMatrix(double* A, double* b, int size) {
-	double* newA = (double*)malloc(sizeof(double) * size * size);
-	for (int i = 0; i < size; i++) {	
+
+
+void SolveEq(double* L, double* U, double* A, double* b, double* x, const int size) {
+	double* y = (double*)malloc(sizeof(double) * size);
+	double sum = 0;
+	y[0] = b[0];
+	for (int i = 1; i < size; i++) { // идем по строкам
+		sum = 0;
+		for (int k = 0; k <= i - 1; k++) {
+			sum = sum + L[i * size + k] * y[k];
+		}
+		y[i] = b[i] - sum;     // коэффициент при y[i]=1
+	}
+	int m = size - 1;
+	x[m] = y[m] / U[size * m + m];
+
+	for (int i = size - 2; i >= 0; i--) {
+		sum = 0;
+		for (int k = size - 1; k >= i + 1; k--) {
+			sum = sum + U[size * i + k] * x[k];
+		}
+		x[i] = (y[i] - sum) / U[size * i + i];
+	}
+	free(y);
+}
+
+void ReadMatrix(FILE* fp, double* A, int size) {
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			double elem = 0;
+			fscanf(fp, "%lf ", &elem);
+			A[i * size + j] = elem;
+		}
+	}
+}
+
+void Print(double mass[][10], int size) {
+	for (int str = 0; str < size; str++) {
+		for (int col = 0; col < size; col++) {
+			printf("%.8f ", *mass[str*size+col]);
+		}
+		printf("\n");
 	}
 }
 
 int main() {
-	/*double A[3][3] = { {1, 1,1}, {1, 2, 3}, {1, 3,4} };
-	double L[3][3] = { 0 };
-	double U[3][3] = { 0 };
-	double b[3] = { 6, 14, 19 };
-	const int size = 3;
-	double* x = (double*)malloc(sizeof(double)*size);*/
+	int size = 10;
+	double** massMat = (double**)malloc(sizeof(double*) * size );	
+	double* massVec = (double*)malloc(sizeof(double) * size);
 	
-	double A[3][3];
-	double b[3] = {10, 10};
-	double L[3][3];
-	double U[3][3];
-	int size = 3;
+	double b[10] ;
+	double L[10][10] = {0};
+	double U[10][10] = {0};
+	
 	double* x = (double*)malloc(sizeof(double) * size);
+	char* matrixFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/matrix.csv";
+	char* vectorFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/vector.csv";
+	FILE* fp1 = fopen(matrixFile, "r");
+	FILE* fp2 = fopen(vectorFile, "r");
 	
-	//VectorInFile("vector.txt", x, size);
-	char* matrixFile = "C:/Users/z.kate/Desktop/matrix.txt";
-	ReadMatrix(matrixFile, A, size );
-	PrintMatrix(A, size);
+	//заполняем массив матриц
+	double* A;
+	for (int k = 0; k < 10; k++) {
+		A = (double*)malloc(sizeof(double) * size*size);
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				double elem = 0;
+				fscanf(fp1, "%lf ", &elem);
+				A[i*size+j] = elem;
+			}
+		}
+		massMat[k] = A;
+	}
+
+	
+	PrintMatrix(massMat[1], size);
+	LU(massMat[0], L, U, size);
+	PrintMatrix(L, size);
+	printf("\n");
+	PrintMatrix(U, size);
+	//PrintMatrix(A, size);
+	//ReadVector(vectorFile, b, size);
+	////PrintVector(b, size);
+	//LU(A, L, U, size);
+	//SolveEq(L, U, A, b, x, size);
+	//PrintVector(x, size);
 }
 
