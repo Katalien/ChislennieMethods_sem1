@@ -34,6 +34,11 @@ void Copy(double* from, double* to, int size) {
 	}
 }
 
+void CopyVector(double* newVec, double* b, int size) {
+	for (int i = 0; i < size; i++) {
+		newVec[i] = b[i];
+	}
+}
 
 //void LU(double* L, double* U, double* A, int size) {
 //	Copy(A, U, size);
@@ -89,16 +94,10 @@ void ReadVector(char* filename, double* b, int size) {
 }
 
 
-void VectorInFile(char* filename, double* vector, int size) {
-	FILE* fp = fopen(filename, "a");
-	if (fp == NULL) {
-		printf("file wan't opened");
-		return;
-	}
+void VectorInFile(FILE* fp, double* vector, int size) {
 	for (int i = 0; i < size; i++) {
 		fprintf(fp, "%.8f ", vector[i]);
 	}
-	fclose(fp);
 }
 
 
@@ -155,20 +154,41 @@ void Check(double* A, double* b, double* x, int size) {  //только первая строка
 	printf("\n\n%lf %lf", b[0], sum);
 }
 
+void ChangeVector(double* b, double delta, int size) {
+	for (int i = 0; i < size; i++) {
+		b[i] = b[i] + delta;
+	}
+}
+
 int main() {
 	int size = 10;
+	int n = 9;
 	char* matrixFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/matrix.csv";
 	char* vectorFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/vector.csv";
+	char* xFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/res.csv";
+	char* goodFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/good.csv";
+	char* badFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/bad.csv";
 	FILE* fp1 = fopen(matrixFile, "r");
 	FILE* fp2 = fopen(vectorFile, "r");
+	FILE* fp3 = fopen(xFile, "w");
+	FILE* fpgood = fopen(goodFile, "w");
+	FILE* fpbad = fopen(badFile, "w");
 
 	double** massMat = (double**)malloc(sizeof(double*) * size );	
 	double** massVec = (double**)malloc(sizeof(double*) * size);
 	double** massL = (double**)malloc(sizeof(double*) * size);
 	double** massU = (double**)malloc(sizeof(double*) * size);
 	double** massX = (double**)malloc(sizeof(double*) * size);
-	
-	
+	double* Deltab = (double*)malloc(sizeof(double) * size);
+	double** newXgood = (double**)malloc(sizeof(double*) * n);
+	double** newXbad = (double**)malloc(sizeof(double*) * n);
+	Deltab[0] = 1e-9;
+
+
+	//заполняем массив дельта
+	for (int i = 1; i < n; i++) {
+		Deltab[i] = Deltab[i - 1] * 10;
+	}
 		
 	//заполняем массив матриц
 	double* A;
@@ -181,8 +201,13 @@ int main() {
 				A[i*size+j] = elem;
 			}
 		}
+		
 		massMat[k] = A;
 	}
+	double* B = massMat[0];
+	double* C = massMat[9];
+	
+
 
 	//заполняем массив векторов b
 	double* b;
@@ -195,6 +220,9 @@ int main() {
 		}
 		massVec[k] = b;
 	}
+
+	double* b1 = massVec[0];
+	double* b2 = massVec[9];
 
 	//заполним массив L U
 	double* L; 
@@ -216,20 +244,41 @@ int main() {
 		SolveEq(massL[k], massU[k], massMat[k], massVec[k], x, size);
 		massX[k] = x;
 	}
-	PrintMatrix(massMat[0], size);
-	PrintVector(massVec[0], size);
-	Check(massMat[0], massVec[0], massX[0], size);
+	
 
-	/*PrintMatrix(massMat[1], size);
-	LU(massMat[0], L, U, size);
-	PrintMatrix(L, size);
-	printf("\n");
-	PrintMatrix(U, size);*/
-	//PrintMatrix(A, size);
-	//ReadVector(vectorFile, b, size);
-	////PrintVector(b, size);
-	//LU(A, L, U, size);
-	//SolveEq(L, U, A, b, x, size);
-	//PrintVector(x, size);
+
+	
+	//запичываем результат х в файл
+	for (int k = 0; k < size; k++) {
+		for (int i = 0; i < size; i++) {
+			double* A = massX[k];
+			double elem = A[i];
+			fprintf(fp3, "%.8f ", elem);
+		}
+		fprintf(fp3,"\n");
+	}
+
+	
+	
+	//создаем два файла для 2 матриц +done
+	//берем 1 матрицу, в цикле вносим возмущение в вектор b, считаем х и записываем в файл
+
+	// запись в файл для хорошй матрицы
+	for (int k = 0; k <n; k++) {
+		double* newVec = (double*)malloc(sizeof (double)*size);
+		double* newX = (double*)malloc(sizeof(double) * size);
+		double* Ltemp = (double*)malloc(sizeof(double) * size*size);
+		double* Utemp = (double*)malloc(sizeof(double) * size * size);
+		FillZero(Ltemp, size);
+		CopyVector(newVec, b1, size);	
+		LU(B, Ltemp, Utemp, size);
+		ChangeVector(newVec, Deltab[k], size);
+		SolveEq(Ltemp, Utemp, B,newVec,  newX, size);
+		VectorInFile(fpgood, newX, size);
+		fprintf(fpgood, "\n");
+	}
+ 
+
+	// запись в файл для плохой матрицы
 }
 
