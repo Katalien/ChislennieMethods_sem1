@@ -21,7 +21,7 @@ void PrintMatrix(double* mass, int size) {
 void PrintVector(double* vect, int size) {
 	printf("\n");
 	for (int i = 0; i < size; i++) {
-		printf("%.8f\n", vect[i]);
+		printf("%.8f ", vect[i]);
 	}
 
 }
@@ -137,30 +137,39 @@ void ReadMatrix(FILE* fp, double* A, int size) {
 	}
 }
 
-void Print(double mass[][10], int size) {
-	for (int str = 0; str < size; str++) {
-		for (int col = 0; col < size; col++) {
-			printf("%.8f ", *mass[str*size+col]);
+
+
+void FillZero(double* mass, int size) {
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			mass[i * size + j] = 0;
 		}
-		printf("\n");
 	}
+}
+
+void Check(double* A, double* b, double* x, int size) {  //только первая строка
+	double sum = 0;
+	for (int i = 0; i < size; i++) {
+		sum = sum + A[i] * x[i];
+	}
+	printf("\n\n%lf %lf", b[0], sum);
 }
 
 int main() {
 	int size = 10;
-	double** massMat = (double**)malloc(sizeof(double*) * size );	
-	double* massVec = (double*)malloc(sizeof(double) * size);
-	
-	double b[10] ;
-	double L[10][10] = {0};
-	double U[10][10] = {0};
-	
-	double* x = (double*)malloc(sizeof(double) * size);
 	char* matrixFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/matrix.csv";
 	char* vectorFile = "C:/Users/z.kate/Desktop/3 сем/chmData/лаба2/vector.csv";
 	FILE* fp1 = fopen(matrixFile, "r");
 	FILE* fp2 = fopen(vectorFile, "r");
+
+	double** massMat = (double**)malloc(sizeof(double*) * size );	
+	double** massVec = (double**)malloc(sizeof(double*) * size);
+	double** massL = (double**)malloc(sizeof(double*) * size);
+	double** massU = (double**)malloc(sizeof(double*) * size);
+	double** massX = (double**)malloc(sizeof(double*) * size);
 	
+	
+		
 	//заполняем массив матриц
 	double* A;
 	for (int k = 0; k < 10; k++) {
@@ -175,12 +184,47 @@ int main() {
 		massMat[k] = A;
 	}
 
+	//заполняем массив векторов b
+	double* b;
+	for (int k = 0; k < 10; k++) {
+		b = (double*)malloc(sizeof(double) * size);
+		for (int i = 0; i < size; i++) {
+			double elem;
+			fscanf(fp2, "%lf ", &elem);
+			b[i] = elem;
+		}
+		massVec[k] = b;
+	}
+
+	//заполним массив L U
+	double* L; 
+	double* U;
+	for (int k = 0; k < 10; k++) {
+		L = (double*)malloc(sizeof(double) * size * size);
+		U = (double*)malloc(sizeof(double) * size * size);
+		FillZero(L, size);
+		FillZero(U, size);
+		LU(massMat[k], L, U, size);
+		massL[k] = L;
+		massU[k] = U;
+	}
 	
-	PrintMatrix(massMat[1], size);
+	//решаем слау и заполняем массив Х
+	double* x;
+	for (int k = 0; k < size; k++) {
+		x = (double*)malloc(sizeof(double) * size);
+		SolveEq(massL[k], massU[k], massMat[k], massVec[k], x, size);
+		massX[k] = x;
+	}
+	PrintMatrix(massMat[0], size);
+	PrintVector(massVec[0], size);
+	Check(massMat[0], massVec[0], massX[0], size);
+
+	/*PrintMatrix(massMat[1], size);
 	LU(massMat[0], L, U, size);
 	PrintMatrix(L, size);
 	printf("\n");
-	PrintMatrix(U, size);
+	PrintMatrix(U, size);*/
 	//PrintMatrix(A, size);
 	//ReadVector(vectorFile, b, size);
 	////PrintVector(b, size);
