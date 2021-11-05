@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="3graph.c" />
     <ClCompile Include="LUFunctions.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
