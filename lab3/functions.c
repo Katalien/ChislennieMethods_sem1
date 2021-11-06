@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <stdio.h>
 #include<math.h>
+#pragma warning(disable:4996)
 
 
 int** CreateMatrix(int n) {
@@ -40,11 +41,55 @@ void PrintMatrix(double** mass, int size) {
     }
 }
 
+void ReadMatrix(FILE* fp, double** A, int size) {
+    double elem = 0;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            fscanf(fp, "%lf", &elem);
+            A[i][j] = elem;
+        }
+    }
+}
+
+void ReadVector(FILE* fp, double* b, int size){
+double elem = 0;
+    for (int i = 0; i < size; i++) {
+        fscanf(fp, "%lf", &elem);
+        b[i] = elem;    
+    }
+}
+
 void PrintVector(double* vec, int size) {
     printf("\n");
     for (int i = 0; i < size; i++) {
         printf("%.3f ", vec[i]);
     }
+}
+
+void FillVectorZero(double* b, int size) {
+    for (int i = 0; i < size; i++) {
+        b[i] = 0;
+    }
+}
+
+double FindMax(double* b, int size) {
+    double max = b[0];
+    for (int i = 1; i < size; i++) {
+        if (b[i] >= max) {
+            max = b[i];
+        }
+    }
+    return max;
+}
+
+double FindMin(double* b, int size) {
+    double min = b[0];
+    for (int i = 1; i < size; i++) {
+        if (b[i] <= min) {
+            min = b[i];
+        }
+    }
+    return min;
 }
 
 double* MatMulVec(double** A, double* b, int size) {
@@ -148,24 +193,33 @@ double* Richardson(double** A, double* b, double*x0, int size, double d1, double
 }
 
 int main() {
+    FILE* fp1 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/matrix.csv", "r");
+    FILE* fp2 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/vector.csv", "r");
+    FILE* fp3 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/sobstv.csv", "r");
     int m = 2;
-    int size = 2;
+    int size = 5;
     double** A = CreateMatrix(size);
     double* b = (double*)malloc(sizeof(double) * size);
     double* x0 = (double*)malloc(sizeof(double) * size);
-    double d1 = 0.99-0.01;
-    double d2 = 2.99+0.01;
-    A[0][0] = 1.15;
-    A[0][1] = 0.53;
-    A[1][0] = 0.53;
-    A[1][1] = 2.84;
-    b[0] = 1.69;
-    b[1] = 3.38;
-    x0[0] = 0;
-    x0[1] = 0;
-    double* res = Richardson(A, b,x0, size, d1, d2, m, 0.000001);
+    double* res = (double*)malloc(sizeof(double) * size);
+    double* ch = (double*)malloc(sizeof(double) * size);
+    double dmin = 0;
+    double dmax = 0;
+    double eps = 0.001;
+    ReadMatrix(fp1, A, size);
+    ReadVector(fp2, b, size);
+    ReadVector(fp3, ch, size);
+    dmin = FindMin(ch, size)-eps;
+    dmax = FindMax(ch, size)+eps;
+    FillVectorZero(x0, size);
+    res = Richardson(A, b, x0, size, dmin, dmax, m, eps);
     PrintVector(res, size);
-   
-
+    free(A);
+    free(b);
+   // free(res);
+    free(ch);
+    free(x0);
+   // double* res = Richardson(A, b,x0, size, d1, d2, m, 0.000001);
+   // PrintVector(res, size);
     return 0;
 }
