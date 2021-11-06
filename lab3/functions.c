@@ -196,7 +196,7 @@ int main() {
     FILE* fp1 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/matrix.csv", "r");
     FILE* fp2 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/vector.csv", "r");
     FILE* fp3 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/sobstv.csv", "r");
-    int m = 2;
+    int m = 10;
     int size = 5;
     double** A = CreateMatrix(size);
     double* b = (double*)malloc(sizeof(double) * size);
