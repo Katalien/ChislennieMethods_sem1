@@ -1,18 +1,19 @@
 #define _USE_MATH_DEFINES
 #include <stdio.h>
 #include<math.h>
+#include<stdlib.h>
 #pragma warning(disable:4996)
 
 #define WORK 1 // file
 
-int** CreateMatrix(int n) {
-    int** matrix = (int**)malloc(sizeof(int*) * n);
+double** CreateMatrix(double n) {
+    double** matrix = (double**)malloc(sizeof(double*) * n);
     if (matrix == NULL) {
         free(matrix);
         return NULL;
     }
     for (int i = 0; i < n; i++) {
-        matrix[i] = (int*)malloc(sizeof(int) * n);
+        matrix[i] = (double*)malloc(sizeof(double) * n);
         if (matrix[i] == NULL) {
             for (int j = 0; j < i; j++) {
                 free(matrix[j]);
@@ -24,10 +25,10 @@ int** CreateMatrix(int n) {
     return matrix;
 }
 
-void FillZero(int** matrix, int n) {
+void FillZero(double** matrix, int n) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            matrix[i][j] = 0;
+            matrix[i][j] = 0.0;
         }
     }
 }
@@ -111,7 +112,8 @@ double* MatMulVec(double** A, double* b, int size) {
     return res;
 }
 
-double* VecMinVec(double* a, double* b, int size) {
+double* VecMinVec(double* a, double* b, int size, double check) {
+  //  printf("\nerror %f\n", check);
     double* res = (double*)malloc(sizeof(double) * size);
     if (res == NULL) {
         return 0;
@@ -124,8 +126,9 @@ double* VecMinVec(double* a, double* b, int size) {
 }
 
 double* Residual(double** A, double* b, double* x, int n) {
+    double checkToDel = 0;
     double* tmp = MatMulVec(A, x, n);
-    double* res = VecMinVec(tmp, b, n);
+    double* res = VecMinVec(tmp, b, n, checkToDel);
     return res;
 }
 
@@ -151,15 +154,19 @@ void CountAlpha(double* alpha, double* lam, int m) {
 }
 
 double* g(double* x, double alpha, double** A, double* b, int size) {
+    double checkToDel1 = 1.1;
+    double checkToDel2 = 1.2;
     double* tmp = MatMulVec(A, x, size);
-    tmp = VecMinVec(tmp, b, size );
+    tmp = VecMinVec(tmp, b, size, checkToDel1 );
+   // printf("\ntmp  = ");
    // PrintVector(tmp, size);
     for (int i = 0; i < size; i++) {
         tmp[i] = alpha * tmp[i];
         //printf("\n%f ", tmp[i]);
     }
-    double* res = VecMinVec(x, tmp, size);
+    double* res = VecMinVec(x, tmp, size, checkToDel2);
    // PrintVector(res, size);
+    free(tmp);
     return res;
 }
 
@@ -172,51 +179,11 @@ double Norma(double* x, int size) {
     return res;
 }
 
-void Inversion(double** A, int N){
-    double temp;
-    double** E = CreateMatrix(N);
-    FillZero(E, N);
-    for (int k = 0; k < N; k++) {
-        temp = A[k][k];
-        for (int j = 0; j < N; j++){
-            A[k][j] /= temp;
-            E[k][j] /= temp;
-        }
-        for (int i = k + 1; i < N; i++){
-            temp = A[i][k];
-            for (int j = 0; j < N; j++)
-            {
-                A[i][j] -= A[k][j] * temp;
-                E[i][j] -= E[k][j] * temp;
-            }
-        }
-    }
 
-    for (int k = N - 1; k > 0; k--){
-        for (int i = k - 1; i >= 0; i--){
-            temp = A[i][k];
-            for (int j = 0; j < N; j++){
-                A[i][j] -= A[k][j] * temp;
-                E[i][j] -= E[k][j] * temp;
-            }
-        }
-    }
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            A[i][j] = E[i][j];
-        }
-    }
-    PrintMatrix(A, N);
-    for (int i = 0; i < N; i++) {
-       free (*E);
-    }
-    free (E);
-}
-
-double* Richardson(double** A, double* b, double*x0, int size, double d1, double d2, int m, double eps) {
+void Richardson(double** A, double* b, double* x0, double** res, int size, double d1, double d2, int m, double eps) {
     double* x = (double*)malloc(sizeof(double) * size);
     double* tmp = (double*)malloc(sizeof(double) * size);
-    double* xnext = (double*)malloc(sizeof(double) * size); //?
+    double* xnext = (double*)malloc(sizeof(double) * size); 
     double* t = (double*)malloc(sizeof(double) * m);
     double* lam = (double*)malloc(sizeof(double) * m);
     double* alpha = (double*)malloc(sizeof(double) * m);
@@ -227,8 +194,9 @@ double* Richardson(double** A, double* b, double*x0, int size, double d1, double
    // double* dif = VecMinVec(x, x0, size);
     double* residual;
     tmp = x0;
+    int count = 0;
    do {
-       int count = 0;
+       count++;
         for (int i = 0; i < m; i++) {
             xnext = g(tmp, alpha[i], A, b, size);
             tmp = xnext;
@@ -239,7 +207,15 @@ double* Richardson(double** A, double* b, double*x0, int size, double d1, double
        // PrintVector(xnext, size);
         x0 = xnext;
    } while (Norma(residual, size) > eps);
-    return xnext;
+   printf("\ncount = %d\n", count);
+   *res = xnext;
+   //free(xnext);
+   free(alpha);
+   free(lam);
+   free(t);
+   free(x);
+   //PrintVector(*res, size);
+  // return xnext;
 }
 
 
@@ -254,25 +230,26 @@ int main() {
     double** A = CreateMatrix(size);
     double* b = (double*)malloc(sizeof(double) * size);
     double* x0 = (double*)malloc(sizeof(double) * size);
-    double* res = (double*)malloc(sizeof(double) * size);
+    double* res = (double*)malloc(sizeof(double) * size); ;
     double* ch = (double*)malloc(sizeof(double) * size);
     double dmin = 0;
     double dmax = 0;
     double eps = 0.000000001;
     ReadMatrix(fp1, A, size);
-    PrintMatrix(A, size);  
     ReadVector(fp2, b, size);
     ReadVector(fp3, ch, size);
     dmin = FindMin(ch, size)-eps;
     dmax = FindMax(ch, size)+eps;
-    printf("%lf %lf", dmin, dmax);
+    PrintMatrix(A, size);
+    printf("\n");
+    PrintVector(b, size);
     FillVectorZero(x0, size);
-    res = Richardson(A, b, x0, size, dmin, dmax, m, eps);
+     Richardson(A, b, x0, &res, size, dmin, dmax, m, eps);
     PrintVector(res, size);
     free(A);
-//    free(b);
-    // free(res);
-    //free(ch);
+    free(b);
+     free(res);
+    free(ch);
     //free(x0);
     // double* res = Richardson(A, b,x0, size, d1, d2, m, 0.000001);
     // PrintVector(res, size);
