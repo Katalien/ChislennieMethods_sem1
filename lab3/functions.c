@@ -3,6 +3,7 @@
 #include<math.h>
 #pragma warning(disable:4996)
 
+#define WORK 1 // file
 
 int** CreateMatrix(int n) {
     int** matrix = (int**)malloc(sizeof(int*) * n);
@@ -62,7 +63,7 @@ double elem = 0;
 void PrintVector(double* vec, int size) {
     printf("\n");
     for (int i = 0; i < size; i++) {
-        printf("%.3f ", vec[i]);
+        printf("%.10f ", vec[i]);
     }
 }
 
@@ -71,6 +72,8 @@ void FillVectorZero(double* b, int size) {
         b[i] = 0;
     }
 }
+
+
 
 double FindMax(double* b, int size) {
     double max = b[0];
@@ -120,6 +123,12 @@ double* VecMinVec(double* a, double* b, int size) {
     return res;
 }
 
+double* Residual(double** A, double* b, double* x, int n) {
+    double* tmp = MatMulVec(A, x, n);
+    double* res = VecMinVec(tmp, b, n);
+    return res;
+}
+
 void CountT(double* t, int m) {
     for (int i = 1; i <= m; i++) {
         t[i-1] = cos(M_PI * (double)((2 * i - 1)) / (double)(2 * m));
@@ -144,13 +153,13 @@ void CountAlpha(double* alpha, double* lam, int m) {
 double* g(double* x, double alpha, double** A, double* b, int size) {
     double* tmp = MatMulVec(A, x, size);
     tmp = VecMinVec(tmp, b, size );
-    PrintVector(tmp, size);
+   // PrintVector(tmp, size);
     for (int i = 0; i < size; i++) {
         tmp[i] = alpha * tmp[i];
         //printf("\n%f ", tmp[i]);
     }
     double* res = VecMinVec(x, tmp, size);
-    PrintVector(res, size);
+   // PrintVector(res, size);
     return res;
 }
 
@@ -217,8 +226,6 @@ double* Richardson(double** A, double* b, double*x0, int size, double d1, double
     //x = g(x0, alpha[0], A, b, size);
    // double* dif = VecMinVec(x, x0, size);
     double* residual;
-    double* dif;
-    double* 
     tmp = x0;
    do {
        int count = 0;
@@ -226,51 +233,69 @@ double* Richardson(double** A, double* b, double*x0, int size, double d1, double
             xnext = g(tmp, alpha[i], A, b, size);
             tmp = xnext;
         }
-        //dif = VecMinVec(xnext, x0, size);
-        residual = VecMinVec(MatMulVec(A, x, size), b, size);
-        printf("\ndef = %f\n", Norma(dif, size));
-        printf("\n%d : x = ", count++);
-        PrintVector(xnext, size);
+        residual = Residual(A, b, xnext, size);
+       // printf("\ndef = %f\n", Norma(dif, size));
+        //printf("\n%d : x = ", count++);
+       // PrintVector(xnext, size);
         x0 = xnext;
-   } while (Norma(dif, size) > eps);
+   } while (Norma(residual, size) > eps);
     return xnext;
 }
 
 
 
 int main() {
+#ifdef WORK {
     FILE* fp1 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/matrix.csv", "r");
     FILE* fp2 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/vector.csv", "r");
     FILE* fp3 = fopen("C:/Users/z.kate/Desktop/data_for_chm/лаба3/sobstv.csv", "r");
-    int m = 10;
-    int size = 5;
+    int m = 2;
+    int size = 10;
     double** A = CreateMatrix(size);
-    double** InvA = CreateMatrix(size);
     double* b = (double*)malloc(sizeof(double) * size);
     double* x0 = (double*)malloc(sizeof(double) * size);
     double* res = (double*)malloc(sizeof(double) * size);
     double* ch = (double*)malloc(sizeof(double) * size);
     double dmin = 0;
     double dmax = 0;
-    double eps = 0.001;
+    double eps = 0.000000001;
     ReadMatrix(fp1, A, size);
-  // ReadMatrix(fp1, InvA, size);
-    PrintMatrix(A, size);
-    Inversion(A, size);
-    
-    /*ReadVector(fp2, b, size);
+    PrintMatrix(A, size);  
+    ReadVector(fp2, b, size);
     ReadVector(fp3, ch, size);
     dmin = FindMin(ch, size)-eps;
     dmax = FindMax(ch, size)+eps;
+    printf("%lf %lf", dmin, dmax);
     FillVectorZero(x0, size);
     res = Richardson(A, b, x0, size, dmin, dmax, m, eps);
-    PrintVector(res, size);*/
+    PrintVector(res, size);
     free(A);
-    free(b);
-   // free(res);
-    free(ch);
-    free(x0);
-   // double* res = Richardson(A, b,x0, size, d1, d2, m, 0.000001);
-   // PrintVector(res, size);
+//    free(b);
+    // free(res);
+    //free(ch);
+    //free(x0);
+    // double* res = Richardson(A, b,x0, size, d1, d2, m, 0.000001);
+    // PrintVector(res, size);
     return 0;
+#endif
+#ifndef  WORK
+    int size = 2;
+    int m = 2;
+    double eps = 0.000001;
+    double** A = CreateMatrix(size);
+    double* b = (double*)malloc(sizeof(double) * size);
+    double* x = (double*)malloc(sizeof(double) * size);
+    double d1 = 0.9975;
+    double d2 = 2.9925;
+    A[0][0] = 1.15;
+    A[0][1] = 0.53;
+    A[1][0] = 0.53;
+    A[1][1] = 2.84;
+    b[0] = 1.69;
+    b[1] = 3.38;
+    x[0] = 0;
+    x[1] = 0;
+    double* res = Richardson(A, b, x, size, d1, d2, m, eps);
+    PrintVector(res, size);
+#endif // ! WORK_FILE
 }
